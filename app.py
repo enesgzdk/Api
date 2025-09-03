@@ -6,12 +6,9 @@ from google import genai
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-# API key kontrolü
+# API key’i ortam değişkeninden al
 API_KEY = os.environ.get("GOOGLE_API_KEY")
-if not API_KEY:
-    raise ValueError("GOOGLE_API_KEY ortam değişkeni tanımlı değil!")
-
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(api_key=API_KEY) if API_KEY else None
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 @app.route("/")
@@ -20,14 +17,17 @@ def index():
 
 @app.route("/api/feedback", methods=["POST"])
 def get_feedback():
+    if not API_KEY or not client:
+        return jsonify({"feedback": "Sunucu yapılandırması eksik: GOOGLE_API_KEY tanımlı değil."}), 500
+
     data = request.get_json(force=True)
-    essay = data.get("essay", "").strip()
+    essay = (data.get("essay") or "").strip()
     if not essay:
-        return jsonify({"feedback": "Essay boş gönderildi."}), 400
+        return jsonify({"feedback": "Lütfen bir essay gönderin."}), 400
 
     prompt = f"""
-Sen bir akademik yazı öğretmenisin. Aşağıdaki essay’i BUEPT WRITING MARKING SCHEME’e göre değerlendir. 
-Geri bildirimi **Türkçe** olarak ver, tek seferde, parça parça bölmeden, bütün metin halinde.
+Sen bir akademik yazı öğretmenisin. Aşağıdaki essay’i BUEPT WRITING MARKING SCHEME’e göre değerlendir.
+Geri bildirimi **Türkçe** ve **tek parça bütün metin** halinde ver. Puan tablosu ya da JSON verme.
 
 Essay:
 ---
@@ -39,13 +39,12 @@ Essay:
         resp = client.models.generate_content(
             model=MODEL,
             contents=prompt,
-            max_output_tokens=2000
+            # ÖNEMLİ: max_output_tokens burada, top-level değil
+            config={"max_output_tokens": 2000}
         )
-
-        # Gemini'den cevap geldiyse
-        feedback_text = getattr(resp, "text", "").strip()
+        feedback_text = (getattr(resp, "text", "") or "").strip()
         if not feedback_text:
-            return jsonify({"feedback": "Gemini’den boş yanıt geldi, model ayarlarını kontrol et."}), 500
+            return jsonify({"feedback": "Modelden boş yanıt geldi. Model/anahtar ayarlarını kontrol edin."}), 500
 
         return jsonify({"feedback": feedback_text})
 
