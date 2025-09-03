@@ -13,19 +13,52 @@ client = genai.Client()
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 FEEDBACK_PROMPT = """
-You are an expert academic writing teacher. Analyze the essay below and respond ONLY with a valid JSON object:
+You are an expert academic writing teacher. Analyze the essay below strictly according to the **BUEPT WRITING MARKING SCHEME** provided:
+
+- E – EXCELLENT
+- VG – VERY GOOD ACADEMIC ENGLISH
+- MA – CLEARLY MORE THAN ADEQUATE
+- A – ADEQUATE FOR UNIVERSITY STUDY
+- D – DOUBTS ABOUT ADEQUACY
+- NA – NOT ADEQUATE
+- FBA – FAR BELOW ADEQUACY
+- INS – INSUFFICIENT
+- WN – WROTE NOTHING
+- ABS – ABSENT
+
+Evaluate the essay on the following aspects:
+1. Grammar
+2. Vocabulary
+3. Coherence & Cohesion
+4. Task Achievement / Argumentation
+
+Provide your evaluation in **JSON format only**, following this schema:
+
 {
-  "scores": {"grammar": int(0-5), "vocabulary": int(0-5), "coherence": int(0-5), "task": int(0-5)},
+  "score_band": "E / VG / MA / A / D / NA / FBA / INS / WN / ABS",
+  "scores": {
+    "grammar": int(0-5),
+    "vocabulary": int(0-5),
+    "coherence": int(0-5),
+    "task": int(0-5)
+  },
   "highlights": [
-    {"sentence_index": int, "sentence": "original sentence", "issue": "Grammar|Vocabulary|Coherence|Other", "suggestion": "short suggestion"}
+    {
+      "sentence_index": int,
+      "sentence": "original sentence",
+      "issue": "Grammar|Vocabulary|Coherence|Task",
+      "suggestion": "short suggestion"
+    }
   ],
-  "corrected_essay": "the essay with suggested corrections applied",
-  "overall_comment": "short overall feedback"
+  "corrected_essay": "essay with suggested corrections applied",
+  "overall_comment": "short 1-2 sentence feedback"
 }
+
 Essay:
 ---
 {essay}
 ---
+Remember: strictly follow the BUEPT scheme. Assign bands according to quality, length, argumentation, and typical errors. Only output valid JSON.
 """
 
 @app.route("/")
