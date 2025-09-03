@@ -23,7 +23,7 @@ Provide your evaluation in JSON format only, strictly following this schema:
   "corrected_essay":"text",
   "overall_comment":"text"
 }
-answer in Turkish
+
 Essay:
 ---
 {essay}
@@ -47,22 +47,35 @@ def get_feedback():
         resp = client.models.generate_content(
             model=MODEL,
             contents=prompt,
+            max_output_tokens=2000  # uzun essay için yeterli
         )
         text = resp.text
 
-        # JSON parse
+        # JSON parse güvenli
         parsed = None
         try:
             parsed = json.loads(text)
-        except Exception:
+        except:
+            # Eğer model JSON dışında bir şey eklediyse regex ile JSON kısmını yakala
             m = re.search(r'(\{.*\})', text, re.S)
             if m:
                 try:
                     parsed = json.loads(m.group(1))
-                except Exception:
+                except:
                     parsed = None
 
+        # Hala parse edilemediyse boş feedback dön
+        if not parsed:
+            parsed = {
+                "score_band":"NA",
+                "scores":{"grammar":0,"vocabulary":0,"coherence":0,"task":0},
+                "highlights":[],
+                "corrected_essay":"",
+                "overall_comment":"JSON parse edilemedi, essay çok uzun veya format hatalı."
+            }
+
         return jsonify({"raw": text, "parsed": parsed})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
