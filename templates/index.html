@@ -1,70 +1,29 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Essay Feedback</title>
 <style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.container {
-    width: 100%;
-    max-width: 800px;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-textarea {
-    width: 100%;
-    min-height: 150px;
-    padding: 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    resize: vertical;
-}
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    margin-top: 10px;
-    cursor: pointer;
-}
-button:hover {
-    background-color: #0056b3;
-}
-.result-section {
-    margin-top: 20px;
-    padding: 15px;
-    background: #fafafa;
-    border-radius: 5px;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
-    width: 100%;
-}
+  body { font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; display:flex; flex-direction:column; align-items:center; }
+  .container { width:100%; max-width:800px; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+  textarea { width:100%; min-height:160px; padding:10px; font-size:14px; border:1px solid #ccc; border-radius:6px; resize:vertical; }
+  button { width:100%; padding:12px; margin-top:10px; border:0; border-radius:6px; background:#007bff; color:#fff; font-size:16px; cursor:pointer; }
+  button:hover { background:#0056b3; }
+  .result { margin-top:20px; padding:16px; background:#fafafa; border-radius:8px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
 </style>
 </head>
 <body>
-<div class="container">
+  <div class="container">
     <h1>Essay Feedback</h1>
     <textarea id="essay" placeholder="Essay'i buraya yapıştır..."></textarea>
     <button id="send">Feedback Al</button>
 
-    <div id="results" class="result-section" style="display:none;">
-        <h3>Feedback:</h3>
-        <p id="comment"></p>
+    <div id="result" class="result" style="display:none;">
+      <h3>Feedback</h3>
+      <p id="feedback"></p>
     </div>
-</div>
-<script src="/static/app.js"></script>
+  </div>
+  <script src="/static/app.js"></script>
 </body>
 </html>
