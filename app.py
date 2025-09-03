@@ -6,8 +6,12 @@ from google import genai
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-# Gemini client
-client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
+# API key kontrolü
+API_KEY = os.environ.get("GOOGLE_API_KEY")
+if not API_KEY:
+    raise ValueError("GOOGLE_API_KEY ortam değişkeni tanımlı değil!")
+
+client = genai.Client(api_key=API_KEY)
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 @app.route("/")
@@ -19,9 +23,8 @@ def get_feedback():
     data = request.get_json(force=True)
     essay = data.get("essay", "").strip()
     if not essay:
-        return jsonify({"error": "Essay boş"}), 400
+        return jsonify({"feedback": "Essay boş gönderildi."}), 400
 
-    # Türkçe ve tek seferde feedback
     prompt = f"""
 Sen bir akademik yazı öğretmenisin. Aşağıdaki essay’i BUEPT WRITING MARKING SCHEME’e göre değerlendir. 
 Geri bildirimi **Türkçe** olarak ver, tek seferde, parça parça bölmeden, bütün metin halinde.
@@ -31,19 +34,23 @@ Essay:
 {essay}
 ---
 """
+
     try:
         resp = client.models.generate_content(
             model=MODEL,
             contents=prompt,
             max_output_tokens=2000
         )
-        feedback_text = resp.text.strip()
 
-        # Direkt feedback metni JSON içinde
+        # Gemini'den cevap geldiyse
+        feedback_text = getattr(resp, "text", "").strip()
+        if not feedback_text:
+            return jsonify({"feedback": "Gemini’den boş yanıt geldi, model ayarlarını kontrol et."}), 500
+
         return jsonify({"feedback": feedback_text})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"feedback": f"Hata oluştu: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
