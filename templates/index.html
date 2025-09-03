@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,19 +44,14 @@ button {
 button:hover {
     background-color: #0056b3;
 }
-h1 { text-align: center; }
 .result-section {
     margin-top: 20px;
     padding: 15px;
     background: #fafafa;
     border-radius: 5px;
     box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+    width: 100%;
 }
-pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-ul { padding-left: 20px; }
 </style>
 </head>
 <body>
@@ -66,19 +61,7 @@ ul { padding-left: 20px; }
     <button id="send">Feedback Al</button>
 
     <div id="results" class="result-section" style="display:none;">
-        <h2>BUEPT Bandı: <span id="band"></span></h2>
-        <p>Grammary: <span id="grammar"></span></p>
-        <p>Vocabulary: <span id="vocab"></span></p>
-        <p>Coherence: <span id="coherence"></span></p>
-        <p>Task: <span id="task"></span></p>
-
-        <h3>Highlighted Suggestions</h3>
-        <ul id="highlights"></ul>
-
-        <h3>Corrected Essay</h3>
-        <pre id="corrected"></pre>
-
-        <h3>Overall Comment</h3>
+        <h3>Feedback:</h3>
         <p id="comment"></p>
     </div>
 </div>
