@@ -3,7 +3,7 @@ import json
 import re
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from google import genai
+from google import genai  # Gemini API client
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
@@ -12,13 +12,14 @@ CORS(app)
 client = genai.Client()
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
+# Prompt: tüm metinler JSON string olarak dönecek, escape edilecek
 FEEDBACK_PROMPT = """
 You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
 
-Provide your evaluation in JSON format only, strictly following this schema:
+Return a JSON following this schema, wrapping all text in quotes:
 {
   "score_band": "E / VG / MA / A / D / NA / FBA / INS / WN / ABS",
-  "scores": {"grammar":0-5, "vocabulary":0-5, "coherence":0-5, "task":0-5},
+  "scores": {"grammar":"0-5", "vocabulary":"0-5", "coherence":"0-5", "task":"0-5"},
   "highlights":[{"sentence_index":0,"sentence":"text","issue":"Grammar|Vocabulary|Coherence|Task","suggestion":"text"}],
   "corrected_essay":"text",
   "overall_comment":"text"
@@ -28,7 +29,7 @@ Essay:
 ---
 {essay}
 ---
-IMPORTANT: ONLY RETURN VALID JSON, NOTHING ELSE.
+IMPORTANT: RETURN ONLY JSON, NOTHING ELSE. Escape newlines and quotes inside JSON strings.
 """
 
 @app.route("/")
@@ -55,24 +56,20 @@ def get_feedback():
         parsed = None
         try:
             parsed = json.loads(text)
-        except:
-            # Eğer model JSON dışında bir şey eklediyse regex ile JSON kısmını yakala
-            m = re.search(r'(\{.*\})', text, re.S)
-            if m:
-                try:
-                    parsed = json.loads(m.group(1))
-                except:
-                    parsed = None
-
-        # Hala parse edilemediyse boş feedback dön
-        if not parsed:
-            parsed = {
-                "score_band":"NA",
-                "scores":{"grammar":0,"vocabulary":0,"coherence":0,"task":0},
-                "highlights":[],
-                "corrected_essay":"",
-                "overall_comment":"JSON parse edilemedi, essay çok uzun veya format hatalı."
-            }
+        except json.JSONDecodeError:
+            # Satır atlamaları veya tırnaklar yüzünden hata varsa
+            safe_text = text.replace('\n','\\n').replace('"','\\"').replace('“','"').replace('”','"')
+            try:
+                parsed = json.loads(safe_text)
+            except:
+                # Hala parse edilemezse fallback
+                parsed = {
+                    "score_band":"NA",
+                    "scores":{"grammar":"0","vocabulary":"0","coherence":"0","task":"0"},
+                    "highlights":[],
+                    "corrected_essay":"",
+                    "overall_comment":"JSON parse edilemedi, essay formatı sorunlu."
+                }
 
         return jsonify({"raw": text, "parsed": parsed})
 
