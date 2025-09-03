@@ -21,10 +21,9 @@ def get_feedback():
     if not essay:
         return jsonify({"error": "Essay boş"}), 400
 
-    # Prompt: modelden sadece düz metin feedback alıyoruz
     prompt = f"""
 You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
-Provide detailed feedback text only (do not return JSON).
+Provide detailed feedback text only.
 
 Essay:
 ---
@@ -39,9 +38,9 @@ Essay:
         )
         feedback_text = resp.text.strip()
 
-        # Backend JSON oluşturuyoruz → artık syntax error imkansız
+        # Backend JSON oluşturuyoruz → her durumda geçerli
         parsed = {
-            "score_band": "NA",  # istersen burada modelden score çıkarma mantığı ekleyebilirsin
+            "score_band": "NA",
             "scores": {"grammar":0,"vocabulary":0,"coherence":0,"task":0},
             "highlights": [],
             "corrected_essay": essay,
