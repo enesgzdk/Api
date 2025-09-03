@@ -3,18 +3,20 @@ import json
 import re
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from google import genai
+from google import genai  # Gemini API client
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-client = genai.Client()
+# Gemini client, API key environment variable'dan alınıyor
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
+# Prompt: model JSON üretsin ve metinleri string olarak escape etsin
 FEEDBACK_PROMPT = """
 You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
 
-Return a valid JSON object only. Do NOT add any extra explanation or text outside JSON.
+Return a valid JSON object only. Do NOT add any extra text outside JSON.
 Wrap all text fields in quotes and escape newlines if needed.
 
 Essay:
@@ -22,6 +24,10 @@ Essay:
 {essay}
 ---
 """
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/api/feedback", methods=["POST"])
 def get_feedback():
@@ -42,11 +48,10 @@ def get_feedback():
 
         # JSON parse güvenli
         parsed = None
-        # 1. direkt parse
         try:
             parsed = json.loads(text)
-        except:
-            # 2. regex ile JSON kısmını yakala
+        except json.JSONDecodeError:
+            # Eğer JSON parse edilemezse regex ile yakala
             m = re.search(r'\{.*\}', text, re.S)
             if m:
                 try:
@@ -54,7 +59,7 @@ def get_feedback():
                 except:
                     parsed = None
 
-        # 3. hala parse edilemezse fallback
+        # Hala parse edilemezse fallback
         if not parsed:
             parsed = {
                 "score_band":"NA",
@@ -68,3 +73,7 @@ def get_feedback():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
