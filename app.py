@@ -3,38 +3,25 @@ import json
 import re
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from google import genai  # Gemini API client
+from google import genai
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+app = Flask(__name__)
 CORS(app)
 
-# Gemini istemcisi
 client = genai.Client()
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
-# Prompt: tüm metinler JSON string olarak dönecek, escape edilecek
 FEEDBACK_PROMPT = """
 You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
 
-Return a JSON following this schema, wrapping all text in quotes:
-{
-  "score_band": "E / VG / MA / A / D / NA / FBA / INS / WN / ABS",
-  "scores": {"grammar":"0-5", "vocabulary":"0-5", "coherence":"0-5", "task":"0-5"},
-  "highlights":[{"sentence_index":0,"sentence":"text","issue":"Grammar|Vocabulary|Coherence|Task","suggestion":"text"}],
-  "corrected_essay":"text",
-  "overall_comment":"text"
-}
+Return a valid JSON object only. Do NOT add any extra explanation or text outside JSON.
+Wrap all text fields in quotes and escape newlines if needed.
 
 Essay:
 ---
 {essay}
 ---
-IMPORTANT: RETURN ONLY JSON, NOTHING ELSE. Escape newlines and quotes inside JSON strings.
 """
-
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 @app.route("/api/feedback", methods=["POST"])
 def get_feedback():
@@ -44,38 +31,40 @@ def get_feedback():
         return jsonify({"error": "Essay boş"}), 400
 
     prompt = FEEDBACK_PROMPT.format(essay=essay)
+
     try:
         resp = client.models.generate_content(
             model=MODEL,
             contents=prompt,
-            max_output_tokens=2000  # uzun essay için yeterli
+            max_output_tokens=2000
         )
         text = resp.text
 
         # JSON parse güvenli
         parsed = None
+        # 1. direkt parse
         try:
             parsed = json.loads(text)
-        except json.JSONDecodeError:
-            # Satır atlamaları veya tırnaklar yüzünden hata varsa
-            safe_text = text.replace('\n','\\n').replace('"','\\"').replace('“','"').replace('”','"')
-            try:
-                parsed = json.loads(safe_text)
-            except:
-                # Hala parse edilemezse fallback
-                parsed = {
-                    "score_band":"NA",
-                    "scores":{"grammar":"0","vocabulary":"0","coherence":"0","task":"0"},
-                    "highlights":[],
-                    "corrected_essay":"",
-                    "overall_comment":"JSON parse edilemedi, essay formatı sorunlu."
-                }
+        except:
+            # 2. regex ile JSON kısmını yakala
+            m = re.search(r'\{.*\}', text, re.S)
+            if m:
+                try:
+                    parsed = json.loads(m.group(0))
+                except:
+                    parsed = None
 
-        return jsonify({"raw": text, "parsed": parsed})
+        # 3. hala parse edilemezse fallback
+        if not parsed:
+            parsed = {
+                "score_band":"NA",
+                "scores":{"grammar":0,"vocabulary":0,"coherence":0,"task":0},
+                "highlights":[],
+                "corrected_essay":"",
+                "overall_comment":"Model JSON üretemedi."
+            }
+
+        return jsonify(parsed)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
