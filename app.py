@@ -3,16 +3,15 @@ import json
 import re
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from google import genai  # Gemini API client
+from google import genai
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-# Gemini client, API key environment variable'dan alınıyor
+# Gemini client
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
-# Prompt: model JSON üretsin ve metinleri string olarak escape etsin
 FEEDBACK_PROMPT = """
 You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
 
@@ -46,27 +45,28 @@ def get_feedback():
         )
         text = resp.text
 
-        # JSON parse güvenli
-        parsed = None
+        # JSON parse denemesi
         try:
             parsed = json.loads(text)
-        except json.JSONDecodeError:
-            # Eğer JSON parse edilemezse regex ile yakala
+        except:
+            # Regex ile JSON kısmını yakala
             m = re.search(r'\{.*\}', text, re.S)
             if m:
                 try:
                     parsed = json.loads(m.group(0))
                 except:
                     parsed = None
+            else:
+                parsed = None
 
-        # Hala parse edilemezse fallback
+        # Hala parse edilemezse fallback JSON
         if not parsed:
             parsed = {
-                "score_band":"NA",
-                "scores":{"grammar":0,"vocabulary":0,"coherence":0,"task":0},
-                "highlights":[],
-                "corrected_essay":"",
-                "overall_comment":"Model JSON üretemedi."
+                "score_band": "NA",
+                "scores": {"grammar":0,"vocabulary":0,"coherence":0,"task":0},
+                "highlights": [],
+                "corrected_essay": essay,
+                "overall_comment": "Model JSON üretemedi. Feedback alınamadı, ancak essay gönderildi."
             }
 
         return jsonify(parsed)
