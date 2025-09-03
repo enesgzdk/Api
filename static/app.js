@@ -1,30 +1,31 @@
 const sendBtn = document.getElementById("send");
-const essayInput = document.getElementById("essay");
-const resultsDiv = document.getElementById("results");
-const commentP = document.getElementById("comment");
+const essayEl = document.getElementById("essay");
+const resultBox = document.getElementById("result");
+const feedbackP = document.getElementById("feedback");
 
 sendBtn.addEventListener("click", async () => {
-    const essayText = essayInput.value.trim();
-    if (!essayText) {
-        alert("Lütfen essay girin.");
-        return;
-    }
+  const essay = (essayEl.value || "").trim();
+  if (!essay) {
+    alert("Lütfen essay girin.");
+    return;
+  }
 
-    resultsDiv.style.display = "block";
-    commentP.textContent = "Feedback alınıyor...";
+  resultBox.style.display = "block";
+  feedbackP.textContent = "Feedback alınıyor...";
 
-    try {
-        const response = await fetch("/api/feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ essay: essayText })
-        });
+  try {
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ essay })
+    });
 
-        const data = await response.json();
-
-        commentP.innerHTML = data.feedback ? data.feedback.replace(/\n/g, "<br>") : "Feedback alınamadı.";
-
-    } catch (err) {
-        commentP.textContent = `Hata: ${err}`;
-    }
+    // Backend her durumda JSON döndürüyor
+    const data = await res.json();
+    const text = data.feedback || "Feedback alınamadı.";
+    // Satır sonlarını koru
+    feedbackP.innerHTML = String(text).replace(/\n/g, "<br>");
+  } catch (err) {
+    feedbackP.textContent = "Hata: " + err;
+  }
 });
