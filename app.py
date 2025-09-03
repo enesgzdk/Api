@@ -40,7 +40,7 @@ Essay:
             model=MODEL,
             contents=prompt,
             # ÖNEMLİ: max_output_tokens burada, top-level değil
-            config={"max_output_tokens": 2000}
+            config={"max_output_tokens": 4000}
         )
         feedback_text = (getattr(resp, "text", "") or "").strip()
         if not feedback_text:
