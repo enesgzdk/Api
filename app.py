@@ -1,6 +1,4 @@
 import os
-import json
-import re
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from google import genai
@@ -11,18 +9,6 @@ CORS(app)
 # Gemini client
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-
-FEEDBACK_PROMPT = """
-You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
-
-Return a valid JSON object only. Do NOT add any extra text outside JSON.
-Wrap all text fields in quotes and escape newlines if needed.
-
-Essay:
----
-{essay}
----
-"""
 
 @app.route("/")
 def index():
@@ -35,39 +21,32 @@ def get_feedback():
     if not essay:
         return jsonify({"error": "Essay boş"}), 400
 
-    prompt = FEEDBACK_PROMPT.format(essay=essay)
+    # Prompt: modelden sadece düz metin feedback alıyoruz
+    prompt = f"""
+You are an expert academic writing teacher. Analyze the essay below strictly according to the BUEPT WRITING MARKING SCHEME.
+Provide detailed feedback text only (do not return JSON).
 
+Essay:
+---
+{essay}
+---
+"""
     try:
         resp = client.models.generate_content(
             model=MODEL,
             contents=prompt,
             max_output_tokens=2000
         )
-        text = resp.text
+        feedback_text = resp.text.strip()
 
-        # JSON parse denemesi
-        try:
-            parsed = json.loads(text)
-        except:
-            # Regex ile JSON kısmını yakala
-            m = re.search(r'\{.*\}', text, re.S)
-            if m:
-                try:
-                    parsed = json.loads(m.group(0))
-                except:
-                    parsed = None
-            else:
-                parsed = None
-
-        # Hala parse edilemezse fallback JSON
-        if not parsed:
-            parsed = {
-                "score_band": "NA",
-                "scores": {"grammar":0,"vocabulary":0,"coherence":0,"task":0},
-                "highlights": [],
-                "corrected_essay": essay,
-                "overall_comment": "Model JSON üretemedi. Feedback alınamadı, ancak essay gönderildi."
-            }
+        # Backend JSON oluşturuyoruz → artık syntax error imkansız
+        parsed = {
+            "score_band": "NA",  # istersen burada modelden score çıkarma mantığı ekleyebilirsin
+            "scores": {"grammar":0,"vocabulary":0,"coherence":0,"task":0},
+            "highlights": [],
+            "corrected_essay": essay,
+            "overall_comment": feedback_text
+        }
 
         return jsonify(parsed)
 
